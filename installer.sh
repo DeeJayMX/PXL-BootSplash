@@ -40,7 +40,7 @@ ETIQUETTE=$(date +%Y%m%d-%H%M%S)
 
 LIB=/usr/lib/pxl-bootsplash; THEME=/usr/share/plymouth/themes/pxl; ETC=/etc/pxl-bootsplash; SD=/etc/systemd/system
 ETAT=/var/lib/pxl-bootsplash
-PAQUETS=(plymouth plymouth-label fonts-dejavu-core gcc libdrm-dev pkg-config)
+PAQUETS=(plymouth plymouth-label fonts-dejavu-core gcc libdrm-dev pkg-config librsvg2-bin)
 MASQUES=(plymouth-quit.service plymouth-quit-wait.service)   # sinon Debian ferme Plymouth à multi-user.target (5,6 s)
 # shellcheck disable=SC1091
 . "$ICI/lib/cmdline.sh"   # CMDLINE_RETIRER, CMDLINE_AJOUTER, voulue, append_de
@@ -116,17 +116,19 @@ p_fichiers() {
 
 c_logo() { [ -s "$THEME/logo.png" ] && [ "$(cat "$THEME/logo.source.sha256" 2>/dev/null)" = "$(sha256sum < "$ICI/theme/logo-pxl.svg" | cut -d' ' -f1)" ]; }
 p_logo() {
-  # le logo : SVG rendu en PNG SUR L'APPAREIL (aucun binaire dans le dépôt), fond transparent — la recette de la box :
-  # ⚠️ en 100vw/100vh, pas en pixels fixes : en --headless=new la zone utile est plus petite que --window-size, et un
-  # logo en pixels sortait rogné (box, mesuré le 02/10).
+  # le logo : SVG rendu en PNG SUR L'APPAREIL (aucun binaire dans le dépôt), fond transparent.
+  # ⭐ rsvg-convert d'abord : la box rendait par Chromium, mais le Chromium de Radxa (Rock 5B) n'a PAS la plateforme
+  # headless — « Invalid ozone platform: headless », mesuré sur pxl-tx le 30/10. Chromium reste le repli.
   local nav; nav=$(command -v chromium chromium-browser google-chrome 2>/dev/null | head -1)
-  if [ "$MODE" != appliquer ]; then dire "[simulation] rendre $THEME/logo.png (${nav:-rsvg-convert})"; return 0; fi
+  if [ "$MODE" != appliquer ]; then dire "[simulation] rendre $THEME/logo.png ($(command -v rsvg-convert >/dev/null && echo rsvg-convert || echo "${nav:-rien}"))"; return 0; fi
   local r; r=$(mktemp -d); cp "$ICI/theme/logo-pxl.svg" "$r/"
-  if [ -n "$nav" ]; then
+  if command -v rsvg-convert >/dev/null; then rsvg-convert -w 1400 "$r/logo-pxl.svg" -o "$r/logo.png" || true; fi
+  if [ ! -s "$r/logo.png" ] && [ -n "$nav" ]; then
+    # ⚠️ en 100vw/100vh, pas en pixels fixes : en --headless=new la zone utile est plus petite que --window-size, et un
+    # logo en pixels sortait rogné (box, mesuré le 02/10).
     printf '<!doctype html><style>html,body{margin:0;background:transparent}img{display:block;width:100vw;height:100vh;object-fit:contain}</style><img src="logo-pxl.svg">' > "$r/l.html"
     "$nav" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --default-background-color=00000000 \
       --user-data-dir="$r/profil" --window-size=1400,780 --screenshot="$r/logo.png" "file://$r/l.html" >/dev/null 2>&1 || true
-  elif command -v rsvg-convert >/dev/null; then rsvg-convert -w 1400 "$r/logo-pxl.svg" -o "$r/logo.png" || true
   fi
   if [ -s "$r/logo.png" ]; then
     install -D -m 644 "$r/logo.png" "$THEME/logo.png" && sha256sum < "$ICI/theme/logo-pxl.svg" | cut -d' ' -f1 > "$THEME/logo.source.sha256"
