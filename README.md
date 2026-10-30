@@ -65,6 +65,11 @@ qu'il remplace. `--cmdline non` (défaut) : l'appareil gère sa ligne de command
 - **`splash` réveille le Plymouth de l'initrd**, qui n'a pas de DRM à ce moment-là (Rock 5B : pilote prêt à ~5,7 s,
   après le passage à la racine). Celui du système suffit — **l'initrd n'est pas touché** (il porte le r8125 avec PTP
   sur PXL Switch).
+- 🔴 **ERRATUM 1.0.3 (30/10, mesuré sur pxl-tx)** : sans `splash`, le Plymouth de Debian 22.02 affiche le JOURNAL
+  (thème « details ») — il lui faut `splash` ou `rhgb` ; et le script de l'initrd de Debian démarre Plymouth PAR
+  DÉFAUT, avec le thème de l'initrd. D'où `nosplash rhgb` sur la ligne et les conditions de `plymouth-start` reposées
+  sans `!nosplash`. La phrase précédente (« pas de DRM dans l'initrd ») est fausse elle aussi : 5,7 s était une heure
+  `dmesg` ; le mode du noyau est posé vers 1,9 s.
 - Plymouth en mode TEXTE avec une console série (« details forced ») : `plymouth.ignore-serial-consoles`, et
   `plymouth.graphical` puisque `splash` n'est plus là (box, 02/10).
 
