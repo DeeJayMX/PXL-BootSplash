@@ -1,0 +1,16 @@
+# pxl-bootsplash — la dernière marche de l'arrêt : la barre à 100 %, tenue FIN_ARRET_S s, juste avant le redémarrage
+# matériel (1.1.3). Après tous les services (shutdown.target, umount.target), avant systemd-reboot/-poweroff/-halt/-kexec.
+[Unit]
+Description=PXL — fin de l'arrêt sur l'écran PXL (barre pleine)
+DefaultDependencies=no
+After=shutdown.target umount.target pxl-bootsplash-arret.service
+Before=systemd-reboot.service systemd-poweroff.service systemd-halt.service systemd-kexec.service final.target
+ConditionKernelCommandLine=!plymouth.enable=0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/pxl-bootsplash/fin-arret
+TimeoutStartSec=8
+
+[Install]
+WantedBy=reboot.target poweroff.target halt.target kexec.target

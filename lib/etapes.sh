@@ -61,6 +61,7 @@ for nom in $ETAPES; do
   eval "sonde_$i() $(declare -f sonde | tail -n +2)"
   envoyer "$i" n "$LIBELLE"
   [ "$nom" = "${AFFICHAGE_ETAPE:-}" ] && echo "$i" > "$RUN/etape-affichage" 2>/dev/null
+  [ "$nom" = arret-fin ] && echo "$i" > "$RUN/etape-carte" 2>/dev/null
 done
 if declare -F pied >/dev/null; then envoyer F 0 "$(pied)"; else envoyer F 0 "$(hostname)  ·  $PRODUIT"; fi
 

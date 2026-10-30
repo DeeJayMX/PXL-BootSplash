@@ -69,6 +69,7 @@ poser() {
 # La liste des fichiers posés tels quels : UNE liste, lue par la pose ET par le contrôle.
 FICHIERS=(
   "$ICI/lib/etapes.sh|$LIB/etapes|755" "$ICI/lib/lacher.sh|$LIB/lacher|755" "$ICI/lib/mode-demarrage.sh|$LIB/mode-demarrage|755"
+  "$ICI/lib/fin-arret.sh|$LIB/fin-arret|755" "$ICI/systemd/pxl-bootsplash-fin-arret.service|$SD/pxl-bootsplash-fin-arret.service|644"
   "$ICI/theme/pxl.plymouth|$THEME/pxl.plymouth|644" "$ICI/theme/pxl.script|$THEME/pxl.script|644"
   "$ICI/systemd/pxl-bootsplash-mode.service|$SD/pxl-bootsplash-mode.service|644"
   "$ICI/systemd/pxl-bootsplash-etapes.service|$SD/pxl-bootsplash-etapes.service|644"
@@ -172,7 +173,7 @@ p_logo() {
   rm -rf "$r"
 }
 
-UNITES_ON=(pxl-bootsplash-mode.service pxl-bootsplash-etapes.service pxl-bootsplash-arret.service)
+UNITES_ON=(pxl-bootsplash-mode.service pxl-bootsplash-etapes.service pxl-bootsplash-arret.service pxl-bootsplash-fin-arret.service)
 c_services() {
   local u r=0
   for u in "${UNITES_ON[@]}"; do [ "$(systemctl is-enabled "$u" 2>/dev/null)" = enabled ] || { r=1; [ "$MODE" = verifier ] && dire "non activé : $u"; }; done
@@ -227,6 +228,7 @@ if [ $RETIRER = 1 ]; then
   faire "systemctl disable ${UNITES_ON[*]} 2>/dev/null; systemctl unmask ${MASQUES[*]}"
   [ -e "$ETAT/getty-tty1-etait-active" ] && faire "systemctl enable getty@tty1.service"
   for f in "$SD/pxl-bootsplash-mode.service" "$SD/pxl-bootsplash-etapes.service" "$SD/pxl-bootsplash-arret.service" \
+           "$SD/pxl-bootsplash-fin-arret.service" \
            "$SD"/plymouth-{start,reboot,poweroff,halt,kexec}.service.d/10-pxl-bootsplash.conf \
            ${AFFICHAGE_UNITE:+"$SD/$AFFICHAGE_UNITE.d/20-pxl-bootsplash.conf"}; do [ -e "$f" ] && faire "rm -f '$f'"; done
   [ -e /etc/plymouth/plymouthd.conf.avant-pxl-bootsplash ] && faire "mv -f /etc/plymouth/plymouthd.conf.avant-pxl-bootsplash /etc/plymouth/plymouthd.conf"

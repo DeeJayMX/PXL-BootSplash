@@ -165,7 +165,9 @@ fun rafraichir() {
   o = 0.35 + 0.65 * Math.Abs(Math.Sin(t / 18));
   for (i = 1; i <= 8; i++) { if (etat[i] == "1") icone[i].SetOpacity(o); else icone[i].SetOpacity(1); }
   if (!barre) return;
-  vu = vu + (cible - vu) * 0.06;                       # rejoint la cible en douceur (~1 s)
+  # rejoint la cible en douceur (~1 s) — à l'ARRÊT bien plus vite (1.1.3) : l'écran d'arrêt ne vit qu'une seconde ou
+  # deux avant le redémarrage matériel, et la barre n'arrivait pas au bout (Eliott, 30/10)
+  if (arret) vu = vu + (cible - vu) * 0.25; else vu = vu + (cible - vu) * 0.06;
   if (cible - vu < 0.001) vu = cible;
   lf = Math.Int(vu * pl);
   decalage = decalage + 1.6 * k;                      # le courant, à ~80 px/s en 1080 — À CONTRE-SENS du remplissage
