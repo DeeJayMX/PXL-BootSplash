@@ -20,9 +20,21 @@ FIN=deactivate
 e=$(cat "$RUN/etape-affichage" 2>/dev/null)
 [ -n "$e" ] && plymouth update --status="pxl|$e|1|ouverture de l'affichage…" 2>/dev/null
 sleep 0.3
-# tty1 (fbcon) ne doit rien montrer si l'écran lui revient un instant : vidé, curseur masqué
-printf '\033[H\033[2J\033[3J\033[?25l' > /dev/tty1 2>/dev/null
 mkdir -p "$RUN" && install -d -m 1777 "$RUN/signal"
+# ⭐ (1.0.4) LE TÉMOIN, lisible sans voir l'écran (proposé par la session pxl-switcher, 30/10) : ce que porte tty1 et le
+# mode du VT, avant et après le passage. tty1 doit être VIDE quand l'écran change de main — fbcon peut le montrer une image.
+temoin() {
+  local n kd
+  n=$(fold -w 400 /dev/vcs1 2>/dev/null | grep -vc '^[[:space:]]*$')
+  kd=$(python3 -I -c 'import fcntl,array,sys
+a=array.array("i",[0]); f=open("/dev/tty1","rb"); fcntl.ioctl(f,0x4B3B,a); print({0:"texte",1:"graphique"}.get(a[0],a[0]))' 2>/dev/null)
+  echo "pxl-bootsplash-lacher : témoin $1 — tty1 : ${n:-?} ligne(s) non vide(s), VT en mode ${kd:-?}" | tee -a "$RUN/temoin"
+}
+# tty1 (fbcon) ne doit rien montrer si l'écran lui revient un instant : vidé, curseur masqué — avant ET après le passage
+vider_tty1() { printf '\033[H\033[2J\033[3J\033[?25l' > /dev/tty1 2>/dev/null; }
+temoin "avant"
+vider_tty1
+temoin "après vidage"
 if [ "$FIN" = quit ]; then
   timeout 5 plymouth quit --retain-splash 2>/dev/null
   echo "pxl-bootsplash-lacher : Plymouth parti (--retain-splash)"
@@ -34,4 +46,6 @@ else
   timeout 5 plymouth quit 2>/dev/null
   echo "pxl-bootsplash-lacher : ⚠️ deactivate sans réponse — Plymouth renvoyé"
 fi
+vider_tty1   # ce que Plymouth aurait écrit en lâchant le VT
+temoin "après le passage"
 exit 0

@@ -182,6 +182,7 @@ temoins() {
   for a in $c; do [[ $a =~ $CMDLINE_RETIRER ]] && jaune "/proc/cmdline porte encore « $a »"; done
   dire "modes posés à ce démarrage (dmesg, « Update mode ») :"
   dmesg 2>/dev/null | grep -o 'Update mode to [^,]* for vp[0-9]*' | sed 's/^/    /'
+  cat /run/pxl-bootsplash/temoin 2>/dev/null | sed 's/^/    /'   # tty1 et mode du VT au passage de main (doit être 0 ligne)
   journalctl -b -o cat --no-pager -u pxl-bootsplash-mode -u pxl-bootsplash-etapes 2>/dev/null | grep -v '^$' | tail -6 | sed 's/^/    /'
 }
 

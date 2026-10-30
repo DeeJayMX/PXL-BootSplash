@@ -5,8 +5,13 @@
 #   30/10, arrêt de pxl-tx) — la console série garde tout ;
 # · video= passe AVANT le mode préféré de l'EDID (drm_client_modeset) : c'est pxl-bootsplash-mode qui décide.
 CMDLINE_RETIRER='^(splash|console=tty[0-9]*|video=.*)$'
-CMDLINE_AJOUTER=(quiet nosplash rhgb plymouth.graphical plymouth.ignore-serial-consoles logo.nologo
+CMDLINE_AJOUTER=(quiet nosplash rhgb plymouth.graphical plymouth.ignore-serial-consoles plymouth.nolog logo.nologo
   vt.global_cursor_default=0 systemd.show_status=false)
+# ⭐ 1.0.4 — `plymouth.nolog` (30/10, vu par Eliott : une image de console au départ du compositeur). Mesuré sur pxl-tx :
+#   plymouthd envoie SIGRTMIN+20 à systemd dès son démarrage (4,83 s), ce qui RÉACTIVE l'affichage d'état malgré
+#   `systemd.show_status=false`, et il DÉTOURNE la console pour son boot.log : les lignes `[ OK ]` finissaient dans tty1
+#   (/dev/vcs1 : 67 lignes), et fbcon les montrait le temps d'une image au passage de main. Sans détournement, elles
+#   vont à la console série seule. (Interrupteur lu dans /usr/sbin/plymouthd : « plymouth.nolog ».)
 # 🔴 ERRATUM 1.0.3 (30/10, 18h30, mesuré sur pxl-tx) — `plymouth.graphical` NE REMPLACE PAS `splash` ici. Deux faits :
 # · le Plymouth de Debian (22.02) n'affiche un thème graphique QUE si la ligne porte `splash` ou `rhgb` — sinon
 #   « details », c'est-à-dire le JOURNAL à l'écran (lu dans /usr/sbin/plymouthd : « no default splash because kernel

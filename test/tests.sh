@@ -26,7 +26,7 @@ else faux "compilation : $(head -3 "$T/cc")"; fi
 echo "3 · la ligne de commande voulue, sur la VRAIE ligne de pxl-tx (30/10)"
 . "$ICI/lib/cmdline.sh"
 AVANT="root=UUID=2e6a37fe-c35a-4fa1-b3e6-932217ec4dcb console=ttyFIQ0,1500000n8 quiet splash loglevel=4 rw video=HDMI-A-1:800x480@60 video=HDMI-A-2:1920x1080@60 earlycon consoleblank=0 console=tty1 coherent_pool=2M irqchip.gicv3_pseudo_nmi=0 cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory swapaccount=1 snd_usb_audio.lowlatency=0"
-ATTENDU="root=UUID=2e6a37fe-c35a-4fa1-b3e6-932217ec4dcb console=ttyFIQ0,1500000n8 quiet loglevel=4 rw earlycon consoleblank=0 coherent_pool=2M irqchip.gicv3_pseudo_nmi=0 cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory swapaccount=1 snd_usb_audio.lowlatency=0 nosplash rhgb plymouth.graphical plymouth.ignore-serial-consoles logo.nologo vt.global_cursor_default=0 systemd.show_status=false"
+ATTENDU="root=UUID=2e6a37fe-c35a-4fa1-b3e6-932217ec4dcb console=ttyFIQ0,1500000n8 quiet loglevel=4 rw earlycon consoleblank=0 coherent_pool=2M irqchip.gicv3_pseudo_nmi=0 cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory swapaccount=1 snd_usb_audio.lowlatency=0 nosplash rhgb plymouth.graphical plymouth.ignore-serial-consoles plymouth.nolog logo.nologo vt.global_cursor_default=0 systemd.show_status=false"
 r=$(voulue "$AVANT")
 [ "$r" = "$ATTENDU" ] && bon "splash, console=tty1 et les deux video= retirés ; console série gardée ; ajouts en fin" || faux "voulue : « $r »"
 [ "$(voulue "$r")" = "$r" ] && bon "idempotente (relancer ne change rien)" || faux "voulue n'est pas idempotente"
