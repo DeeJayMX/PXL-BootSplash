@@ -71,7 +71,31 @@ PATH="$T/bin:$PATH" PXL_BOOTSPLASH_CONF="$T/appareil2.conf" PXL_BOOTSPLASH_LIB="
 wait; d=$(echo "$(date +%s.%N) - $d0" | bc)
 grep -q 'aucun signal' "$T/etapes2.out" && [ "$(echo "$d >= 2" | bc)" = 1 ] && bon "parti au plafond, après ${d%.*} s, et il le DIT" || faux "plafond : $d s — $(tail -1 "$T/etapes2.out")"
 
-echo "6 · la rivière se régénère À L'IDENTIQUE (graine fixe) et se reboucle (deux périodes égales)"
+echo "6 · chien de garde : le programme qui DÉMARRE n'est pas un programme arrêté (pxl-tx, 30/10 à 19h28:27)"
+# Faux systemctl : `is-active` dit « pas actif » (la lecture d'AVANT « Started »), `show ActiveState` lit $T/etat.
+cat > "$T/bin/systemctl" <<EOF
+#!/bin/bash
+case "\$1" in is-active) exit 3 ;; show) cat "$T/etat" ;; esac
+EOF
+chmod +x "$T/bin/systemctl"
+printf 'ETAPES="un"\nAFFICHAGE_UNITE=banc.service\nFIN_S=600\nDUREE_MAX=999999\n' > "$T/appareil3.conf"
+for cas in active failed; do
+  rm -f "$T/plymouth.log" "$T/run/lache" "$T/run/signal/premiere-image"; touch "$T/vivant"; echo "$cas" > "$T/etat"
+  ( sleep 0.5; touch "$T/run/lache"; sleep 2.5; rm -f "$T/vivant" ) &
+  PATH="$T/bin:$PATH" PXL_BOOTSPLASH_CONF="$T/appareil3.conf" PXL_BOOTSPLASH_LIB="$T/lib" PXL_BOOTSPLASH_RUN="$T/run" \
+    timeout 20 bash "$ICI/lib/etapes.sh" > "$T/etapes3.out" 2>&1
+  wait
+  if [ $cas = active ]; then
+    ! grep -q reactivate "$T/plymouth.log" && bon "actif (lu après « Started ») : Plymouth NE reprend PAS l'écran" \
+      || faux "fausse alarme : $(grep -m1 arrêté "$T/etapes3.out")"
+  else
+    grep -q reactivate "$T/plymouth.log" && grep -q 'arrêté avant' "$T/etapes3.out" \
+      && bon "vraiment arrêté (failed) : Plymouth reprend l'écran, et le dit" || faux "arrêt réel non vu"
+  fi
+done
+printf '#!/bin/bash\nexit 0\n' > "$T/bin/systemctl"
+
+echo "7 · la rivière se régénère À L'IDENTIQUE (graine fixe) et se reboucle (deux périodes égales)"
 python3 -I "$ICI/outils/riviere.py" | cmp -s - "$ICI/theme/riviere.svg" && bon "theme/riviere.svg = outils/riviere.py" || faux "riviere.svg ≠ sa génération"
 python3 -I - "$ICI/theme/riviere.svg" <<'PY' && bon "seconde période = première (bouclage net)" || faux "la rivière ne se reboucle pas"
 import re, sys
@@ -80,7 +104,7 @@ a = {(int(x), int(y), c) for x, y, c in r if int(x) < 1100}; b = {(int(x) - 1100
 sys.exit(0 if a and a == b else 1)
 PY
 
-echo "7 · le script Plymouth : accolades et parenthèses équilibrées (pas de Plymouth ici pour l'exécuter)"
+echo "8 · le script Plymouth : accolades et parenthèses équilibrées (pas de Plymouth ici pour l'exécuter)"
 for c in '{}' '()' '[]'; do
   o=$(tr -cd "${c:0:1}" < "$ICI/theme/pxl.script" | wc -c); f=$(tr -cd "${c:1:1}" < "$ICI/theme/pxl.script" | wc -c)
   [ "$o" = "$f" ] && bon "$c : $o ouvrants, $f fermants" || faux "$c : $o ouvrants, $f fermants"

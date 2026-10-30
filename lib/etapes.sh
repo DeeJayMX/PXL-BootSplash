@@ -66,6 +66,18 @@ for nom in $ETAPES; do
 done
 if declare -F pied >/dev/null; then envoyer F 0 "$(pied)"; else envoyer F 0 "$(hostname)  ·  $PRODUIT"; fi
 
+# Le programme d'affichage est-il ARRÊTÉ (pas seulement « pas encore actif ») ?
+# 🔴 1.1.5 — UNE lecture d'ActiveState par essai, et deux essais à 0,5 s. Mesuré sur pxl-tx le 30/10 à 19h28:27 : le
+# test d'avant faisait deux lectures (`is-active`, puis `show ActiveState`) ; la 1re est tombée AVANT « Started »
+# (activating ⇒ pas actif), la 2de APRÈS (active ⇒ pas activating) ⇒ fausse alarme 26 ms après le départ ⇒ `plymouth
+# reactivate` sous le compositeur ⇒ bataille de modes sur vp1 (4K60 de l'écran contre le 1080p60 demandé), genlock perdu.
+arrete() {
+  local s; s=$(systemctl show -p ActiveState --value "$1" 2>/dev/null)
+  case $s in inactive|failed) ;; *) return 1 ;; esac
+  sleep 0.5; s=$(systemctl show -p ActiveState --value "$1" 2>/dev/null)
+  case $s in inactive|failed) return 0 ;; *) return 1 ;; esac
+}
+
 lache_a=""
 while plymouth --ping 2>/dev/null && [ "$(secondes)" -lt "$DUREE_MAX" ]; do
   t=$(secondes)
@@ -96,8 +108,7 @@ while plymouth --ping 2>/dev/null && [ "$(secondes)" -lt "$DUREE_MAX" ]; do
       # pxl-tx le 30/10 à 19h08:26 (relevé de la session pxl-switcher) — « Plymouth part » à ,297, `vp1` éteint à ,364
       # puis rallumé à 141,11 MHz (le 60,43 Hz préféré de l'écran IOC) au lieu du 148,5 du compositeur ; genlock refusé.
       plymouth quit --retain-splash 2>/dev/null; break
-    elif [ -n "$AFFICHAGE_UNITE" ] && ! systemctl is-active -q "$AFFICHAGE_UNITE" \
-         && [ "$(systemctl show -p ActiveState --value "$AFFICHAGE_UNITE")" != activating ]; then
+    elif [ -n "$AFFICHAGE_UNITE" ] && arrete "$AFFICHAGE_UNITE"; then
       # arrêté entre « lâché » et sa première image : Plymouth reprend l'écran et le dit ; systemd le relance
       echo "pxl-bootsplash-etapes : $AFFICHAGE_UNITE arrêté avant sa première image — Plymouth reprend l'écran"
       rm -f "$LACHE"; lache_a=""

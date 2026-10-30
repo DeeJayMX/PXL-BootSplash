@@ -73,6 +73,12 @@ qu'il remplace. `--cmdline non` (défaut) : l'appareil gère sa ligne de command
 - Plymouth en mode TEXTE avec une console série (« details forced ») : `plymouth.ignore-serial-consoles`, et
   `plymouth.graphical` puisque `splash` n'est plus là (box, 02/10).
 
+- 🔴 **1.1.5 (30/10, mesuré sur pxl-tx à 19h28:27) — le chien de garde a pris un programme qui DÉMARRE pour un
+  programme arrêté** : deux lectures systemd séparées (`is-active` puis `show ActiveState`) encadraient « Started » ⇒
+  fausse alarme 26 ms après le départ ⇒ `plymouth reactivate` sous le compositeur ⇒ bataille de modes sur la 2ᵉ sortie
+  (4K60 préféré de l'écran contre le 1080p60 demandé), genlock perdu. Désormais : UNE lecture d'`ActiveState` par essai,
+  seuls `inactive`/`failed` comptent, confirmés deux fois à 0,5 s. Test 6 (vu échouer sur l'ancien code).
+
 ## Ce qui reste à mesurer sur chaque appareil
 
 Le passage de main sans noir (`FIN=deactivate`, déduit) contre `quit --retain-splash` (la box) — témoins : les lignes
