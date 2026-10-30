@@ -11,7 +11,8 @@
 #   1. avant de démarrer, le programme d'affichage fait LÂCHER le DRM à Plymouth (`plymouth deactivate`) : l'image de
 #      Plymouth reste balayée, le programme prend la carte sans écran noir ni changement de mode ;
 #   2. ICI, quand le programme a posé sa première image — il crée $TEMOIN (variable PXL_BOOTSPLASH_TEMOIN, donnée par
-#      son complément systemd) —, `plymouth quit`. Le tampon de Plymouth n'est plus balayé : le retirer ne coupe rien.
+#      son complément systemd) —, `plymouth quit --retain-splash`. Le tampon de Plymouth n'est plus balayé : le retirer
+#      ne coupe rien, et `--retain-splash` l'empêche de reposer les modes en partant (1.1.4).
 #   🔴 Pas de sonde de la carte DRM pendant ce passage : entre `deactivate` et l'ouverture par le programme, il n'y a
 #   AUCUN maître, et le premier qui ouvre /dev/dri/card0 le devient — si c'était nous, le programme (non root) ne
 #   pourrait plus le prendre.
@@ -90,7 +91,11 @@ while plymouth --ping 2>/dev/null && [ "$(secondes)" -lt "$DUREE_MAX" ]; do
     [ -z "$lache_a" ] && lache_a=$t
     if [ -e "$TEMOIN" ]; then
       echo "pxl-bootsplash-etapes : première image du programme d'affichage à ${t} s — Plymouth part"
-      plymouth quit 2>/dev/null; break
+      # 🔴 1.1.4 — `--retain-splash`, TOUJOURS une fois le programme à l'écran. Sans lui, Plymouth rend le VT au texte en
+      # partant, et la remise en état reposait le mode PRÉFÉRÉ d'une prise par-dessus celui du programme : mesuré sur
+      # pxl-tx le 30/10 à 19h08:26 (relevé de la session pxl-switcher) — « Plymouth part » à ,297, `vp1` éteint à ,364
+      # puis rallumé à 141,11 MHz (le 60,43 Hz préféré de l'écran IOC) au lieu du 148,5 du compositeur ; genlock refusé.
+      plymouth quit --retain-splash 2>/dev/null; break
     elif [ -n "$AFFICHAGE_UNITE" ] && ! systemctl is-active -q "$AFFICHAGE_UNITE" \
          && [ "$(systemctl show -p ActiveState --value "$AFFICHAGE_UNITE")" != activating ]; then
       # arrêté entre « lâché » et sa première image : Plymouth reprend l'écran et le dit ; systemd le relance
@@ -101,7 +106,7 @@ while plymouth --ping 2>/dev/null && [ "$(secondes)" -lt "$DUREE_MAX" ]; do
     elif [ $((t - lache_a)) -ge "$FIN_S" ]; then
       echo "pxl-bootsplash-etapes : ⚠️ aucun signal de première image en ${FIN_S} s — Plymouth part quand même" \
            "(son tampon retiré peut noircir l'écran un instant)"
-      plymouth quit 2>/dev/null; break
+      plymouth quit --retain-splash 2>/dev/null; break   # le programme tourne : ne pas toucher à ses modes (1.1.4)
     fi
   fi
   sleep 0.5

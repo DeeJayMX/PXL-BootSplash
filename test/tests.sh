@@ -58,7 +58,7 @@ grep -q 'pxl|1|2|ok à' <<< "$L" && grep -q 'pxl|2|1|en cours' <<< "$L" && bon "
 [ "$(grep -c 'pxl|2|1|en cours' <<< "$L")" = 1 ] && bon "un état inchangé n'est envoyé qu'une fois" || faux "état renvoyé à chaque tour"
 grep -q 'update --status=pxl|F|0|.*Banc' <<< "$L" && bon "pied de page" || faux "pied de page"
 [ "$(cat "$T/run/etape-affichage" 2>/dev/null)" = 2 ] && bon "l'étape d'affichage est la 2ᵉ (ce que lit le lâcher)" || faux "etape-affichage"
-grep -qx 'quit' <<< "$L" && grep -q 'première image' "$T/etapes.out" && bon "Plymouth part sur le SIGNAL de première image" || faux "fin : $(tail -2 "$T/etapes.out")"
+grep -qx 'quit --retain-splash' <<< "$L" && grep -q 'première image' "$T/etapes.out" && bon "Plymouth part sur le SIGNAL de première image, en --retain-splash (sinon il repose le mode préféré d'une prise : pxl-tx, 30/10)" || faux "fin : $(tail -2 "$T/etapes.out")"
 [ $rc = 0 ] && bon "le moteur s'arrête avec Plymouth (rc 0)" || faux "le moteur n'est pas sorti (rc $rc)"
 
 echo "5 · sans signal, il ne part PAS avant son plafond (deux secondes ici)"
