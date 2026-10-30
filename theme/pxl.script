@@ -167,10 +167,11 @@ fun rafraichir() {
   vu = vu + (cible - vu) * 0.06;                       # rejoint la cible en douceur (~1 s)
   if (cible - vu < 0.001) vu = cible;
   lf = Math.Int(vu * pl);
-  decalage = decalage + 1.6 * k;                      # le courant : vers la droite, à ~80 px/s en 1080
+  decalage = decalage + 1.6 * k;                      # le courant, à ~80 px/s en 1080 — À CONTRE-SENS du remplissage
+                                                      # (Eliott, 30/10 : « dans le sens inverse du remplissage »)
   if (decalage >= periode) decalage = decalage - periode;
   if (lf >= 2) {
-    remplissage.SetImage(riviere.Crop(Math.Int(periode - decalage), 0, lf, rh));
+    remplissage.SetImage(riviere.Crop(Math.Int(decalage), 0, lf, rh));   # fenêtre qui avance ⇒ texture qui recule
     remplissage.SetOpacity(1);
     if (tete) { tete_sprite.SetX(px + lf - tete.GetWidth()); tete_sprite.SetOpacity(0.55 + 0.45 * o); }
   } else {
