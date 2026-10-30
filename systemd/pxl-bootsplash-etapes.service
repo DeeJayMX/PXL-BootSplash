@@ -1,0 +1,16 @@
+# pxl-bootsplash — les étapes du démarrage sur l'écran PXL, puis la fin de Plymouth sur le signal de première image du
+# programme d'affichage (voir /usr/lib/pxl-bootsplash/etapes). Il ne touche à aucun /dev/dri : il parle à plymouthd.
+[Unit]
+Description=PXL — étapes du démarrage sur l'écran de démarrage
+DefaultDependencies=no
+After=plymouth-start.service
+Conflicts=shutdown.target
+Before=shutdown.target
+ConditionKernelCommandLine=!plymouth.enable=0
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/pxl-bootsplash/etapes
+
+[Install]
+WantedBy=sysinit.target

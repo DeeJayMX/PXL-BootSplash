@@ -1,0 +1,19 @@
+# pxl-bootsplash — LE MODE DE L'ÉCRAN, avant Plymouth : le mode préféré de l'EDID, sinon le repli d'appareil.conf
+# (SANS_EDID). Ne touche à rien quand le mode est déjà le bon (écran à EDID : le noyau l'a posé lui-même).
+# Type=forking : s'il a posé un mode, un fils garde le tampon jusqu'à ce que Plymouth le remplace (l'arrêter
+# ÉTEINDRAIT l'écran — d'où sa place dans PXL_SANS_ECRAN du compositeur du switcher).
+[Unit]
+Description=PXL — mode de l'écran au démarrage (EDID, sinon repli)
+DefaultDependencies=no
+After=systemd-udev-trigger.service systemd-udevd.service
+Before=plymouth-start.service
+
+[Service]
+Type=forking
+ExecStart=/usr/lib/pxl-bootsplash/mode-demarrage
+TimeoutStartSec=30
+# il ne retient jamais le démarrage : l'outil sort toujours en 0
+SuccessExitStatus=0 1 2
+
+[Install]
+WantedBy=sysinit.target

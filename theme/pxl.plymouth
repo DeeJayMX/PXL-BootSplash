@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=PXL
+Description=Écran de démarrage des appareils PXL (pxl-bootsplash) : logo, puis les étapes du démarrage que l'appareil déclare
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/pxl
+ScriptFile=/usr/share/plymouth/themes/pxl/pxl.script
