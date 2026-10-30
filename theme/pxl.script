@@ -2,7 +2,8 @@
 # Repris de la box PXL GFX (PXL-Kiosk-RK3566, installation/fichiers/plymouth-pxl/pxl.script, 02/10/2026) : grand logo
 # centré, puis les étapes du démarrage. Ce qui change : les étapes ne sont plus écrites ici — c'est l'APPAREIL qui les
 # déclare (/etc/pxl-bootsplash/appareil.conf), et le moteur (pxl-bootsplash-etapes) les envoie.
-# ⭐ 1.1.0 (30/10, demande d'Eliott) : les étapes et une BARRE DE CHARGEMENT dans un cartouche à bords arrondis, en bas ;
+# ⭐ 1.1.0 (30/10, demande d'Eliott) : une BARRE DE CHARGEMENT dans un cartouche à bords arrondis, en bas (1.1.2 : le
+# cartouche n'entoure plus que la barre) ;
 # la barre se remplit d'une « rivière de QR code » en pixels (theme/riviere.svg) qui défile en continu et suit le
 # chargement. Le même écran sert À L'ARRÊT (Plymouth.GetMode() ≠ "boot") avec les étapes d'arrêt.
 #
@@ -50,12 +51,12 @@ if (logo) {
   logo_sprite.SetPosition(W / 2 - logo_sprite.GetImage().GetWidth() / 2, H * 0.17, 1);
 }
 
-# ---- le cartouche : il porte les étapes et la barre
+# ---- le cartouche : AUTOUR DE LA BARRE seulement (1.1.2 — les étapes sont à nu, comme sur la box)
 cy = H * 0.455;
 cartouche = charger("cartouche");
 if (cartouche) {
   cartouche_sprite = Sprite(cartouche);
-  cartouche_sprite.SetPosition(W / 2 - cartouche.GetWidth() / 2, cy, 1);
+  cartouche_sprite.SetPosition(W / 2 - cartouche.GetWidth() / 2, cy + 324 * k, 1);
 }
 
 # ---- les étapes : 8 places, invisibles tant que l'appareil ne les a pas nommées

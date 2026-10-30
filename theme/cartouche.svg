@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="470" viewBox="0 0 1240 470">
-<!-- pxl-bootsplash : le cartouche (taille de référence : écran de 1080 lignes ; rendu à la taille de l'écran à l'installation). Palette PXL : cartouche #10151c, bord #2b3542. Opaque : le masque de la barre reprend sa couleur exacte. -->
-<rect x="1" y="1" width="1238" height="468" rx="30" ry="30" fill="#10151c" stroke="#2b3542" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="100" viewBox="0 0 1180 100">
+<!-- pxl-bootsplash : le cartouche de la BARRE seulement (1.1.2, Eliott : « je le veux seulement pour la barre ») — il porte
+     le titre, la piste et le pourcentage. Taille de référence : écran de 1080 lignes. Palette PXL : #10151c, bord #2b3542.
+     Opaque : le masque de la barre reprend sa couleur exacte. -->
+<rect x="1" y="1" width="1178" height="98" rx="24" ry="24" fill="#10151c" stroke="#2b3542" stroke-width="2"/>
 </svg>
