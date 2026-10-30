@@ -10,6 +10,9 @@ Before=plymouth-start.service
 
 [Service]
 Type=forking
+# ⚠️ (1.0.2) sans RemainAfterExit, un « rien à faire » le laissait inactif, et chaque unité qui le VEUT le relançait :
+# 3 passages au démarrage de pxl-tx le 30/10 (4,60 · 4,68 · 4,82 s) — inoffensif, mais trois sondes pour une.
+RemainAfterExit=yes
 ExecStart=/usr/lib/pxl-bootsplash/mode-demarrage
 TimeoutStartSec=30
 # il ne retient jamais le démarrage : l'outil sort toujours en 0

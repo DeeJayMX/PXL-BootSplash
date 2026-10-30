@@ -29,6 +29,8 @@
 // ⭐ --fb est LE témoin de « l'affichage a pris l'écran » (pxl-bootsplash-etapes) : une ligne de journal ne le prouve
 //   pas — mesuré sur pxl-tx le 30/10, le compositeur écrit « présentation DIRECTE » à 16,99 s et le CRTC n'est
 //   repassé en 1920x1080 qu'à 21,35 s. Le tampon balayé, lui, est l'état du noyau.
+//   🔴 ERRATUM du même jour : FAUX — deux horloges (journal monotone / dmesg, 4,05 s d'avance sur pxl-tx, mesuré) ;
+//   le vrai écart était ~0,3 s. Et --fb ne doit PAS servir pendant le passage de main (README : le maître DRM).
 // Sortie : 0 toujours (un écran de démarrage ne doit jamais retenir le démarrage) — sauf --gtf illisible (2).
 #include <errno.h>
 #include <fcntl.h>

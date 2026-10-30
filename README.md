@@ -57,6 +57,11 @@ qu'il remplace. `--cmdline non` (défaut) : l'appareil gère sa ligne de command
   prendre. D'où un signal par fichier, pas une sonde DRM.
 - **Une ligne de journal ne prouve pas une image à l'écran** : sur pxl-tx (30/10) le compositeur écrivait
   « présentation DIRECTE » à 16,99 s et le CRTC n'est repassé en 1920x1080 qu'à 21,35 s.
+  🔴 **ERRATUM du même jour (18h20) : cet exemple est FAUX.** Les deux heures viennent de DEUX horloges : le journal
+  date les programmes sur l'horloge monotone, `dmesg` (et les lignes `kernel:` du journal) sur celle du noyau, qui a
+  **4,05 s d'avance** sur pxl-tx (mesuré : une marque écrite dans `/dev/kmsg` à 51,36 s monotone porte 55,39 s). Le
+  vrai écart était ~0,3 s. ⚠️ **Ne jamais comparer une heure de `dmesg` à une heure de programme du journal.** Le
+  signal par fichier reste le bon choix, pour la raison du point précédent (le maître DRM), pas pour celle-ci.
 - **`splash` réveille le Plymouth de l'initrd**, qui n'a pas de DRM à ce moment-là (Rock 5B : pilote prêt à ~5,7 s,
   après le passage à la racine). Celui du système suffit — **l'initrd n'est pas touché** (il porte le r8125 avec PTP
   sur PXL Switch).
