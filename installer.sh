@@ -72,6 +72,7 @@ FICHIERS=(
   "$ICI/theme/pxl.plymouth|$THEME/pxl.plymouth|644" "$ICI/theme/pxl.script|$THEME/pxl.script|644"
   "$ICI/systemd/pxl-bootsplash-mode.service|$SD/pxl-bootsplash-mode.service|644"
   "$ICI/systemd/pxl-bootsplash-etapes.service|$SD/pxl-bootsplash-etapes.service|644"
+  "$ICI/systemd/pxl-bootsplash-arret.service|$SD/pxl-bootsplash-arret.service|644"
   "$ICI/systemd/plymouth-start.service.d-10-pxl-bootsplash.conf|$SD/plymouth-start.service.d/10-pxl-bootsplash.conf|644"
 )
 for f in "$ICI"/lib/sondes/*.sh; do FICHIERS+=("$f|$LIB/sondes/$(basename "$f")|644"); done
@@ -85,7 +86,27 @@ AFFICHAGE_UNITE=$(lire_conf AFFICHAGE_UNITE); GETTY_TTY1=$(lire_conf GETTY_TTY1)
 # plymouthd.conf : rendu ici (une ligne de thème), comparé comme un fichier
 PLYCONF=$(mktemp); printf '# pxl-bootsplash %s — thème « pxl », sans délai d’apparition\n[Daemon]\nTheme=pxl\nShowDelay=0\n' "$VERSION" > "$PLYCONF"
 FICHIERS+=("$PLYCONF|/etc/plymouth/plymouthd.conf|644")
-trap 'rm -f "$PLYCONF"' EXIT
+# ⭐ 1.1.0 — L'ÉCRAN D'ARRÊT : les quatre unités Plymouth d'arrêt de Debian, réveillées (`nosplash` les éteint) et
+# ordonnées par rapport au programme d'affichage. Entre une unité qui s'ARRÊTE et une qui DÉMARRE, systemd fait passer
+# l'arrêt d'abord quelle que soit la direction de l'ordre (systemd.unit, After=) : Plymouth démarre donc une fois le
+# programme parti — il tenait le DRM. Rendu ici : le nom du programme vient de l'appareil.
+ARRETS=$(mktemp -d)
+for u in reboot poweroff halt kexec; do
+  { printf '# pxl-bootsplash %s — écran PXL à l%sarrêt : conditions reposées sans « !nosplash » (la ligne le porte pour
+' "$VERSION" "'"
+    printf '# éteindre le Plymouth de l%sinitrd), et Plymouth APRÈS le programme d%saffichage, qui tient le DRM.
+[Unit]
+' "'" "'"
+    printf 'ConditionKernelCommandLine=
+ConditionKernelCommandLine=!plymouth.enable=0
+ConditionVirtualization=!container
+'
+    [ -n "$AFFICHAGE_UNITE" ] && printf 'After=%s
+' "$AFFICHAGE_UNITE"
+  } > "$ARRETS/plymouth-$u.conf"
+  FICHIERS+=("$ARRETS/plymouth-$u.conf|$SD/plymouth-$u.service.d/10-pxl-bootsplash.conf|644")
+done
+trap 'rm -rf "$PLYCONF" "$ARRETS"' EXIT
 
 # ═══ LES ÉTAPES : un CONTRÔLE (lecture seule, 0 = fait) et une POSE ═════════════════════════════════════════════════
 c_paquets() { local p r=0; for p in "${PAQUETS[@]}"; do dpkg -s "$p" >/dev/null 2>&1 || { r=1; [ "$MODE" = verifier ] && dire "absent : $p"; }; done; return $r; }
@@ -114,14 +135,20 @@ p_fichiers() {
   local e src dest mode; for e in "${FICHIERS[@]}"; do IFS='|' read -r src dest mode <<< "$e"; poser "$src" "$dest" "$mode"; done
 }
 
-c_logo() { [ -s "$THEME/logo.png" ] && [ "$(cat "$THEME/logo.source.sha256" 2>/dev/null)" = "$(sha256sum < "$ICI/theme/logo-pxl.svg" | cut -d' ' -f1)" ]; }
+# ⭐ 1.1.0 — LES IMAGES, rendues ICI (aucun binaire dans le dépôt) par rsvg-convert : le logo, et pour chaque hauteur
+# d'écran courante les éléments du cartouche et de la barre, à la bonne taille — des pixels FRANCS pour la rivière
+# (une image de 1080 lignes mise à l'échelle par Plymouth serait floue). Une hauteur absente de la liste reprend celles
+# de 1080, mises à l'échelle par le thème.
+HAUTEURS=(480 600 720 768 800 1024 1080 1200 1440 2160)
+ELEMENTS=(cartouche piste masque tete riviere)
+empreinte_images() { cat "$ICI"/theme/*.svg | sha256sum | cut -d' ' -f1; }
+c_logo() { [ -s "$THEME/logo.png" ] && [ -s "$THEME/riviere-1080.png" ] && [ "$(cat "$THEME/images.source.sha256" 2>/dev/null)" = "$(empreinte_images)" ]; }
 p_logo() {
-  # le logo : SVG rendu en PNG SUR L'APPAREIL (aucun binaire dans le dépôt), fond transparent.
   # ⭐ rsvg-convert d'abord : la box rendait par Chromium, mais le Chromium de Radxa (Rock 5B) n'a PAS la plateforme
-  # headless — « Invalid ozone platform: headless », mesuré sur pxl-tx le 30/10. Chromium reste le repli.
+  # headless — « Invalid ozone platform: headless », mesuré sur pxl-tx le 30/10. Chromium reste le repli (logo seul).
   local nav; nav=$(command -v chromium chromium-browser google-chrome 2>/dev/null | head -1)
-  if [ "$MODE" != appliquer ]; then dire "[simulation] rendre $THEME/logo.png ($(command -v rsvg-convert >/dev/null && echo rsvg-convert || echo "${nav:-rien}"))"; return 0; fi
-  local r; r=$(mktemp -d); cp "$ICI/theme/logo-pxl.svg" "$r/"
+  if [ "$MODE" != appliquer ]; then dire "[simulation] rendre logo.png et ${#ELEMENTS[@]} éléments × ${#HAUTEURS[@]} hauteurs dans $THEME"; return 0; fi
+  local r h e z n=0; r=$(mktemp -d); cp "$ICI/theme/logo-pxl.svg" "$r/"
   if command -v rsvg-convert >/dev/null; then rsvg-convert -w 1400 "$r/logo-pxl.svg" -o "$r/logo.png" || true; fi
   if [ ! -s "$r/logo.png" ] && [ -n "$nav" ]; then
     # ⚠️ en 100vw/100vh, pas en pixels fixes : en --headless=new la zone utile est plus petite que --window-size, et un
@@ -130,14 +157,22 @@ p_logo() {
     "$nav" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --default-background-color=00000000 \
       --user-data-dir="$r/profil" --window-size=1400,780 --screenshot="$r/logo.png" "file://$r/l.html" >/dev/null 2>&1 || true
   fi
-  if [ -s "$r/logo.png" ]; then
-    install -D -m 644 "$r/logo.png" "$THEME/logo.png" && sha256sum < "$ICI/theme/logo-pxl.svg" | cut -d' ' -f1 > "$THEME/logo.source.sha256"
-    printf '  posé  %s\n' "$THEME/logo.png"
-  else jaune "logo non rendu (ni Chromium ni rsvg-convert) : l'écran montrera « pxl mstrs. » en texte"; fi
+  if [ -s "$r/logo.png" ]; then install -D -m 644 "$r/logo.png" "$THEME/logo.png" && printf '  posé  %s\n' "$THEME/logo.png"
+  else jaune "logo non rendu (ni rsvg-convert ni Chromium) : l'écran montrera « pxl mstrs. » en texte"; fi
+  if command -v rsvg-convert >/dev/null; then
+    for h in "${HAUTEURS[@]}"; do
+      z=$(awk -v h="$h" 'BEGIN{printf "%.6f", h / 1080}')
+      for e in "${ELEMENTS[@]}"; do
+        rsvg-convert -z "$z" "$ICI/theme/$e.svg" -o "$r/$e-$h.png" && install -D -m 644 "$r/$e-$h.png" "$THEME/$e-$h.png" && n=$((n + 1))
+      done
+    done
+    printf '  posé  %s images (cartouche, piste, masque, tête, rivière × %s hauteurs)\n' "$n" "${#HAUTEURS[@]}"
+    empreinte_images > "$THEME/images.source.sha256"
+  else jaune "rsvg-convert absent : pas de cartouche ni de barre (le thème s'en passe)"; fi
   rm -rf "$r"
 }
 
-UNITES_ON=(pxl-bootsplash-mode.service pxl-bootsplash-etapes.service)
+UNITES_ON=(pxl-bootsplash-mode.service pxl-bootsplash-etapes.service pxl-bootsplash-arret.service)
 c_services() {
   local u r=0
   for u in "${UNITES_ON[@]}"; do [ "$(systemctl is-enabled "$u" 2>/dev/null)" = enabled ] || { r=1; [ "$MODE" = verifier ] && dire "non activé : $u"; }; done
@@ -191,7 +226,8 @@ if [ $RETIRER = 1 ]; then
   titre "Retirer pxl-bootsplash $VERSION"
   faire "systemctl disable ${UNITES_ON[*]} 2>/dev/null; systemctl unmask ${MASQUES[*]}"
   [ -e "$ETAT/getty-tty1-etait-active" ] && faire "systemctl enable getty@tty1.service"
-  for f in "$SD/pxl-bootsplash-mode.service" "$SD/pxl-bootsplash-etapes.service" "$SD/plymouth-start.service.d/10-pxl-bootsplash.conf" \
+  for f in "$SD/pxl-bootsplash-mode.service" "$SD/pxl-bootsplash-etapes.service" "$SD/pxl-bootsplash-arret.service" \
+           "$SD"/plymouth-{start,reboot,poweroff,halt,kexec}.service.d/10-pxl-bootsplash.conf \
            ${AFFICHAGE_UNITE:+"$SD/$AFFICHAGE_UNITE.d/20-pxl-bootsplash.conf"}; do [ -e "$f" ] && faire "rm -f '$f'"; done
   [ -e /etc/plymouth/plymouthd.conf.avant-pxl-bootsplash ] && faire "mv -f /etc/plymouth/plymouthd.conf.avant-pxl-bootsplash /etc/plymouth/plymouthd.conf"
   faire "rm -rf $LIB $THEME $ETC $ETAT && systemctl daemon-reload"
@@ -200,7 +236,7 @@ if [ $RETIRER = 1 ]; then
 fi
 
 ETAPES=("1|Paquets (Plymouth, police, libdrm)|c_paquets|p_paquets" "2|Outil de mode (compilé ici)|c_outil|p_outil"
-  "3|Thème, moteur, sondes, unités, réglages|c_fichiers|p_fichiers" "4|Logo (rendu ici)|c_logo|p_logo"
+  "3|Thème, moteur, sondes, unités, réglages|c_fichiers|p_fichiers" "4|Images : logo, cartouche, barre (rendues ici)|c_logo|p_logo"
   "5|Services : activés, masques, tty1|c_services|p_services")
 [ "$CMDLINE" != non ] && ETAPES+=("6|Ligne de commande (extlinux, label $LABEL)|c_cmdline|p_cmdline")
 echo "pxl-bootsplash $VERSION — $MODE${APPAREIL:+ — appareil : $APPAREIL}${AFFICHAGE_UNITE:+ — affichage : $AFFICHAGE_UNITE}"

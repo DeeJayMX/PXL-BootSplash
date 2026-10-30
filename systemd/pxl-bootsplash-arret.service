@@ -1,0 +1,17 @@
+# pxl-bootsplash — l'écran PXL À L'ARRÊT et au REDÉMARRAGE (1.1.0, 30/10, demande d'Eliott : « quand on éteint et
+# redémarre, on voit aussi le log ; j'aimerais qu'on reparte sur notre splash, avec les infos d'extinction »).
+# Plymouth y est lancé par les unités de Debian (plymouth-reboot/-poweroff/-halt/-kexec), que l'installeur réveille
+# (`nosplash` les éteignait) et ordonne APRÈS l'arrêt du programme d'affichage, qui tient le DRM jusque-là.
+# Pas de dépendances par défaut : il tourne jusqu'à ce que systemd-shutdown arrête tout.
+[Unit]
+Description=PXL — étapes de l'arrêt sur l'écran PXL
+DefaultDependencies=no
+After=plymouth-reboot.service plymouth-poweroff.service plymouth-halt.service plymouth-kexec.service
+ConditionKernelCommandLine=!plymouth.enable=0
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/pxl-bootsplash/etapes --arret
+
+[Install]
+WantedBy=reboot.target poweroff.target halt.target kexec.target

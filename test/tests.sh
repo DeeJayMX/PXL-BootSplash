@@ -71,6 +71,21 @@ PATH="$T/bin:$PATH" PXL_BOOTSPLASH_CONF="$T/appareil2.conf" PXL_BOOTSPLASH_LIB="
 wait; d=$(echo "$(date +%s.%N) - $d0" | bc)
 grep -q 'aucun signal' "$T/etapes2.out" && [ "$(echo "$d >= 2" | bc)" = 1 ] && bon "parti au plafond, après ${d%.*} s, et il le DIT" || faux "plafond : $d s — $(tail -1 "$T/etapes2.out")"
 
+echo "6 · la rivière se régénère À L'IDENTIQUE (graine fixe) et se reboucle (deux périodes égales)"
+python3 -I "$ICI/outils/riviere.py" | cmp -s - "$ICI/theme/riviere.svg" && bon "theme/riviere.svg = outils/riviere.py" || faux "riviere.svg ≠ sa génération"
+python3 -I - "$ICI/theme/riviere.svg" <<'PY' && bon "seconde période = première (bouclage net)" || faux "la rivière ne se reboucle pas"
+import re, sys
+r = re.findall(r'<rect x="(\d+)" y="(\d+)" width="5" height="5" fill="(#[0-9a-f]+)"/>', open(sys.argv[1]).read())
+a = {(int(x), int(y), c) for x, y, c in r if int(x) < 1100}; b = {(int(x) - 1100, int(y), c) for x, y, c in r if int(x) >= 1100}
+sys.exit(0 if a and a == b else 1)
+PY
+
+echo "7 · le script Plymouth : accolades et parenthèses équilibrées (pas de Plymouth ici pour l'exécuter)"
+for c in '{}' '()' '[]'; do
+  o=$(tr -cd "${c:0:1}" < "$ICI/theme/pxl.script" | wc -c); f=$(tr -cd "${c:1:1}" < "$ICI/theme/pxl.script" | wc -c)
+  [ "$o" = "$f" ] && bon "$c : $o ouvrants, $f fermants" || faux "$c : $o ouvrants, $f fermants"
+done
+
 echo
 [ $ECHECS = 0 ] && echo "✅ tout est vert" || echo "🔴 $ECHECS échec(s)"
 [ $ECHECS = 0 ]

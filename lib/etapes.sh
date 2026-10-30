@@ -18,20 +18,28 @@
 #   Sans signal en $FIN_S secondes : `plymouth quit` quand même (dit dans le journal : ce cas peut noircir l'écran).
 #   Si le programme s'arrête entre les deux : Plymouth REPREND l'écran et le dit (systemd le relance).
 # S'arrête quand Plymouth n'est plus là, et au plus tard après $DUREE_MAX s de démarrage.
+# ⭐ 1.1.0 — `--arret` (pxl-bootsplash-arret.service, à l'arrêt et au redémarrage) : les étapes d'ETAPES_ARRET, et
+# l'avancement de la barre (« pxl|B|c| ») = la part des services déjà arrêtés. Ni plafond de durée (la machine tourne
+# depuis longtemps), ni passage de main : il tourne jusqu'à ce que systemd-shutdown l'arrête.
 CONF=${PXL_BOOTSPLASH_CONF:-/etc/pxl-bootsplash/appareil.conf}
 LIB=${PXL_BOOTSPLASH_LIB:-/usr/lib/pxl-bootsplash}
 RUN=${PXL_BOOTSPLASH_RUN:-/run/pxl-bootsplash}
 SONDES_APPAREIL=/etc/pxl-bootsplash/sondes
 ETAPES="systeme"; PRODUIT="PXL"; AFFICHAGE_UNITE=""; FIN_S=90; DUREE_MAX=300
+ETAPES_ARRET="arret-demande arret-affichage arret-services arret-fin"
+ARRET=0; [ "${1:-}" = --arret ] && ARRET=1
 # shellcheck disable=SC1090
 . "$CONF" 2>/dev/null || echo "pxl-bootsplash-etapes : $CONF illisible — étapes par défaut"
+[ $ARRET = 1 ] && { ETAPES=$ETAPES_ARRET; DUREE_MAX=999999999; }
 LACHE=$RUN/lache                   # posé par pxl-bootsplash-lacher : Plymouth a lâché l'écran
 TEMOIN=$RUN/signal/premiere-image  # créé par le programme d'affichage : sa première image est balayée
 
 # /run est neuf à chaque démarrage ; le dossier du signal est écrit par le programme d'affichage, qui n'est pas root
-mkdir -p "$RUN" && install -d -m 1777 "$RUN/signal" && rm -f "$LACHE" "$TEMOIN"
+mkdir -p "$RUN" && install -d -m 1777 "$RUN/signal"
+[ $ARRET = 0 ] && rm -f "$LACHE" "$TEMOIN"
 
-secondes() { cut -d. -f1 /proc/uptime; }   # pas l'horloge : sans pile, l'heure saute à la synchronisation
+secondes() { cut -d. -f1 /proc/uptime; }
+NIVEAUX=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ   # pas l'horloge : sans pile, l'heure saute à la synchronisation
 declare -A dernier
 envoyer() {   # étape (1-8, F), état (n libellé · 0-4), texte — seulement si ça change
   local m="pxl|$1|$2|$3"
@@ -64,6 +72,15 @@ while plymouth --ping 2>/dev/null && [ "$(secondes)" -lt "$DUREE_MAX" ]; do
     [ -n "$r" ] && envoyer "$k" "${r%%|*}" "${r#*|}"
   done
 
+  # ── à l'arrêt : l'avancement = la part des travaux de systemd déjà faits (36 niveaux, un caractère : pxl.script)
+  if [ $ARRET = 1 ]; then
+    n=$(systemctl list-jobs --no-legend 2>/dev/null | wc -l)
+    [ "$n" -gt "${n0:-0}" ] && n0=$n
+    if [ "${n0:-0}" -gt 0 ]; then
+      niv=$(( (n0 - n) * 35 / n0 )); envoyer B "${NIVEAUX:niv:1}" ""
+    fi
+    sleep 0.5; continue
+  fi
   # ── la fin de l'écran de démarrage
   if [ -z "$AFFICHAGE_UNITE" ] && systemctl is-active -q multi-user.target; then
     # aucun programme d'affichage déclaré : rien ne le relaiera, Plymouth part une fois le système levé

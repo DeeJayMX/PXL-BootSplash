@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="14" height="30" viewBox="0 0 14 30">
+<!-- pxl-bootsplash : la tête du remplissage — un front lumineux qui avance avec le chargement -->
+<defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#eef2f6" stop-opacity="0"/><stop offset="0.75" stop-color="#eef2f6" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="1"/></linearGradient></defs>
+<rect x="0" y="0" width="14" height="30" fill="url(#g)"/>
+</svg>

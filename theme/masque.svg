@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="34" viewBox="0 0 1100 34">
+<!-- pxl-bootsplash : le masque de la barre — les COINS hors de la piste arrondie, à la couleur du cartouche, plus le bord
+     de la piste. Posé AU-DESSUS de la rivière : c'est lui qui arrondit le remplissage (Plymouth ne sait pas découper). -->
+<path fill="#10151c" fill-rule="evenodd" d="M0,0 H1100 V34 H0 Z M17,1 H1083 A16,16 0 0 1 1083,33 H17 A16,16 0 0 1 17,1 Z"/>
+<rect x="1" y="1" width="1098" height="32" rx="16" ry="16" fill="none" stroke="#2b3542" stroke-width="2"/>
+</svg>
